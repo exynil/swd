@@ -1,0 +1,53 @@
+#!/bin/bash
+
+source "$XDG_CONFIG_HOME/swd/swd.conf"
+
+while getopts ":C:a:p:c:r:s:o:l:" opt; do
+  case ${opt} in
+  C) colors="${OPTARG}" ;;
+  a) atleast="${OPTARG}" ;;
+  p) purity="${OPTARG}" ;;
+  c) categories="${OPTARG}" ;;
+  r) ratios="${OPTARG}" ;;
+  s) sorting="${OPTARG}" ;;
+  o) order="${OPTARG}" ;;
+  l) location="${OPTARG}" ;;
+  \?) echo "Invalid option: -$OPTARG" >&2 && exit 1 ;;
+  :) echo "Option -$OPTARG requires an argument." >&2 && exit 1 ;;
+  esac
+done
+
+params+="apikey=$(cat $apikey_file)"
+params+="&colors=$colors"
+params+="&atleast=$atleast"
+params+="&purity=$purity"
+params+="&categories=$categories"
+params+="&ratios=$ratios"
+params+="&sorting=$sorting"
+params+="&order=$order"
+
+api_url="https://wallhaven.cc/api/v1/search?$params"
+
+last_page=$(curl -s -L "$api_url" | jq -r '.meta.last_page')
+
+api_url+="&page=$((RANDOM % last_page))"
+
+response=$(curl -s -L "$api_url")
+
+index=$((RANDOM % 24))
+
+wallpaper_url=$(echo "$response" | jq -r ".data[$index].path")
+wallpaper_size=$(echo "$response" | jq -r ".data[$index].file_size")
+
+wallpaper_preview_url=$(echo "$response" | jq -r ".data[$index].thumbs.small")
+wallpaper_preview="/tmp/swd/${wallpaper_preview_url##*/}"
+
+curl --create-dirs -s -L "$wallpaper_preview_url" -o "$wallpaper_preview"
+
+wallpaper="$location/${wallpaper_url##*/}"
+
+fdp "$wallpaper" "$wallpaper_size" "$wallpaper_preview" &
+
+curl --create-dirs -s -L "$wallpaper_url" -o "$wallpaper"
+
+echo "$wallpaper"
