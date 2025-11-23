@@ -55,7 +55,10 @@ curl --create-dirs -s -L "$wallpaper_preview_url" -o "$wallpaper_preview"
 
 wallpaper="$location/${wallpaper_url##*/}"
 
-fdp "$wallpaper" "$wallpaper_size" "$wallpaper_preview" &
+# Выполняем pre_hook, если он задан
+if [ -n "$pre_hook" ]; then
+    eval "$pre_hook"
+fi
 
 curl --create-dirs -s -L "$wallpaper_url" -o "$wallpaper"
 
